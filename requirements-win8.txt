@@ -1,0 +1,6 @@
+# Windows 8/8.1 legacy profile. Python 3.8.x recommended.
+PySide2==5.15.2.1
+psutil==5.9.8
+Pillow==10.4.0
+pytesseract==0.3.13
+pyautogui==0.9.54
