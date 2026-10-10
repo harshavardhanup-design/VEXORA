@@ -4,12 +4,12 @@ Windows 10/11: PySide6.
 Windows 8/8.1 legacy: PySide2 (Python 3.8 recommended).
 """
 try:
-    from PySide6.QtCore import Qt, QTimer, Signal, QObject, QRunnable, QThreadPool
+    from PySide6.QtCore import Qt, QTimer, Signal, QObject, QRunnable, QThreadPool, QPropertyAnimation, QEasingCurve, QAbstractAnimation
     from PySide6.QtGui import QColor, QPainter, QPen, QKeyEvent, QShortcut, QAction, QKeySequence, QGuiApplication
     from PySide6.QtWidgets import *
     QT_API = "PySide6"
 except ImportError:
-    from PySide2.QtCore import Qt as _Qt, QTimer, Signal, QObject, QRunnable, QThreadPool
+    from PySide2.QtCore import Qt as _Qt, QTimer, Signal, QObject, QRunnable, QThreadPool, QPropertyAnimation, QEasingCurve, QAbstractAnimation
     from PySide2.QtGui import QColor, QPainter, QPen, QKeyEvent, QKeySequence, QGuiApplication
     from PySide2.QtWidgets import *
     try:

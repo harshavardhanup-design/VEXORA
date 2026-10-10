@@ -934,11 +934,47 @@ class MainWindow(QMainWindow):
     def _refresh_process_table(self):
         if not hasattr(self, 'proc_list_layout'):
             return
+        now = time.monotonic()
+        if hasattr(self, '_proc_cache') and self._proc_cache and now - getattr(self, '_proc_cache_ms', 0) < 5.0:
+            self._render_process_rows(self._proc_cache)
+            return
+
+        class ProcWorker(QRunnable):
+            def __init__(self, health, callback):
+                super().__init__()
+                self.health = health
+                self.callback = callback
+            def run(self):
+                try:
+                    p = self.health.top_memory(limit=6)
+                    QTimer.singleShot(0, lambda: self.callback(p))
+                except Exception:
+                    pass
+
+        if hasattr(self, '_proc_cache') and self._proc_cache:
+            self._render_process_rows(self._proc_cache)
+        else:
+            procs = self.health.top_memory(limit=6)
+            self._proc_cache = procs
+            self._proc_cache_ms = now
+            self._render_process_rows(procs)
+
+        worker = ProcWorker(self.health, self._on_procs_loaded)
+        self.thread_pool.start(worker)
+
+    def _on_procs_loaded(self, procs):
+        if procs:
+            self._proc_cache = procs
+            self._proc_cache_ms = time.monotonic()
+            self._render_process_rows(procs)
+
+    def _render_process_rows(self, procs):
+        if not hasattr(self, 'proc_list_layout'):
+            return
         while self.proc_list_layout.count():
             item = self.proc_list_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
-        procs = self.health.top_memory(limit=6)
         if not procs:
             lbl = QLabel('Process telemetry active. Initializing readings…')
             lbl.setStyleSheet('color: #646B82; font-style: italic;')
@@ -1107,27 +1143,40 @@ class MainWindow(QMainWindow):
             pass
 
         if os.name == 'nt':
-            def cim(cls, prop):
-                try:
-                    out = subprocess.check_output(
-                        ['powershell', '-NoProfile', '-Command', f"(Get-CimInstance Win32_{cls} | Select-Object -First 1 -ExpandProperty {prop})"],
-                        text=True, stderr=subprocess.DEVNULL, timeout=2
-                    ).strip()
-                    return out or 'Unavailable'
-                except Exception:
-                    return 'Unavailable'
-            cpu_val = cim('Processor', 'Name')
-            if cpu_val != 'Unavailable':
-                info['cpu'] = cpu_val
-            gpu_val = cim('VideoController', 'Name')
-            if gpu_val != 'Unavailable':
-                info['gpu'] = gpu_val
-            info['bios'] = cim('BIOS', 'SMBIOSBIOSVersion')
-            info['board'] = cim('BaseBoard', 'Product')
-            info['edition'] = cim('OperatingSystem', 'Caption')
-            build = cim('OperatingSystem', 'BuildNumber')
-            if build != 'Unavailable':
-                info['windows'] = f"Build {build}"
+            try:
+                import winreg
+                def _get_reg(root, path, name):
+                    try:
+                        with winreg.OpenKey(root, path) as k:
+                            return str(winreg.QueryValueEx(k, name)[0]).strip()
+                    except Exception:
+                        return 'Unavailable'
+
+                cpu_val = _get_reg(winreg.HKEY_LOCAL_MACHINE, r'HARDWARE\DESCRIPTION\System\CentralProcessor\0', 'ProcessorNameString')
+                if cpu_val != 'Unavailable':
+                    info['cpu'] = cpu_val
+
+                gpu_val = _get_reg(winreg.HKEY_LOCAL_MACHINE, r'SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0000', 'DriverDesc')
+                if gpu_val != 'Unavailable':
+                    info['gpu'] = gpu_val
+
+                bios_val = _get_reg(winreg.HKEY_LOCAL_MACHINE, r'HARDWARE\DESCRIPTION\System\BIOS', 'BIOSVersion')
+                if bios_val != 'Unavailable':
+                    info['bios'] = bios_val
+
+                board_val = _get_reg(winreg.HKEY_LOCAL_MACHINE, r'HARDWARE\DESCRIPTION\System\BIOS', 'BaseBoardProduct')
+                if board_val != 'Unavailable':
+                    info['board'] = board_val
+
+                ed_val = _get_reg(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\Windows NT\CurrentVersion', 'ProductName')
+                if ed_val != 'Unavailable':
+                    info['edition'] = ed_val
+
+                build_val = _get_reg(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\Windows NT\CurrentVersion', 'CurrentBuild')
+                if build_val != 'Unavailable':
+                    info['windows'] = f"Build {build_val}"
+            except Exception:
+                pass
 
         self._spec_cache = dict(info)
         self._spec_cache_ms = now_ms
@@ -1503,13 +1552,34 @@ class MainWindow(QMainWindow):
         l.addLayout(grid)
 
     def navigate(self, key):
+        if not hasattr(self, 'pages') or key not in self.pages:
+            return
         self.current_page = key
         for b, (_, k) in zip(self.nav, self.NAV):
-            b.setObjectName('NavActive' if k == key else 'Nav')
-            b.style().unpolish(b)
-            b.style().polish(b)
-            b.update()
-        self.stack.setCurrentWidget(self.pages[key])
+            should_be_active = (k == key)
+            is_active = (b.objectName() == 'NavActive')
+            if should_be_active != is_active:
+                b.setObjectName('NavActive' if should_be_active else 'Nav')
+                b.style().unpolish(b)
+                b.style().polish(b)
+                b.update()
+
+        target_widget = self.pages[key]
+        if self.settings.get('animations', True) and not self.settings.get('reduce_motion', False) and self.isVisible():
+            self.stack.setCurrentWidget(target_widget)
+            effect = QGraphicsOpacityEffect(target_widget)
+            target_widget.setGraphicsEffect(effect)
+            anim = QPropertyAnimation(effect, b"opacity", self)
+            anim.setDuration(150)
+            anim.setStartValue(0.1)
+            anim.setEndValue(1.0)
+            anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+            anim.finished.connect(lambda: target_widget.setGraphicsEffect(None))
+            anim.start(QAbstractAnimation.DeletionPolicy.DeleteWhenStopped)
+            self._page_anim = anim
+        else:
+            self.stack.setCurrentWidget(target_widget)
+
         if hasattr(self.pages[key], 'battery'):
             self.pages[key].battery.set_state(*self.power())
         self.statusBar().showMessage(f'{key} • ready', 1800)
@@ -1682,15 +1752,18 @@ class MainWindow(QMainWindow):
         ss['chat'].insertWidget(ss['chat'].count() - 1, m)
         self.scroll(key)
         if animate:
+            if self.settings.get('reduce_motion', False):
+                m.set_text(text)
+                return
             self.queue.append([key, m, text, 0])
             ss['stop'].setVisible(True)
             ss['typing'].setVisible(True)
             if not self.typing.isActive():
-                self.typing.start(24 if self.settings.get('fast_replies', True) else 34)
+                self.typing.start(16 if self.settings.get('fast_replies', True) else 24)
 
     def scroll(self, key):
         if self.settings.get('auto_scroll', True):
-            QTimer.singleShot(8, lambda: self.sessions[key]['scroll'].verticalScrollBar().setValue(
+            QTimer.singleShot(6, lambda: self.sessions[key]['scroll'].verticalScrollBar().setValue(
                 self.sessions[key]['scroll'].verticalScrollBar().maximum()
             ))
 
@@ -1699,7 +1772,12 @@ class MainWindow(QMainWindow):
             self.typing.stop()
             return
         key, m, text, i = self.queue[0]
-        step = 5 if len(text) > 700 else (3 if len(text) > 180 else 2)
+        if self.settings.get('reduce_motion', False):
+            step = len(text)
+        elif self.settings.get('fast_replies', True):
+            step = 20 if len(text) > 400 else (12 if len(text) > 120 else 6)
+        else:
+            step = 8 if len(text) > 400 else (5 if len(text) > 120 else 3)
         n = min(len(text), i + step)
         m.set_text(text[:n])
         self.queue[0][3] = n

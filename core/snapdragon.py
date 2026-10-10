@@ -40,24 +40,24 @@ def detect_snapdragon_platform() -> SnapdragonProfile:
 
     if os.name == 'nt':
         try:
-            out = subprocess.check_output(
-                ['powershell', '-NoProfile', '-Command', "(Get-CimInstance Win32_ComputerSystem | Select-Object -ExpandProperty Manufacturer)"],
-                text=True, stderr=subprocess.DEVNULL, timeout=2
-            ).strip()
-            if 'hp' in out.lower() or 'hewlett' in out.lower():
+            import winreg
+            def _get_reg(root, path, name):
+                try:
+                    with winreg.OpenKey(root, path) as k:
+                        return str(winreg.QueryValueEx(k, name)[0]).strip()
+                except Exception:
+                    return ''
+
+            mfg = _get_reg(winreg.HKEY_LOCAL_MACHINE, r'HARDWARE\DESCRIPTION\System\BIOS', 'SystemManufacturer')
+            if 'hp' in mfg.lower() or 'hewlett' in mfg.lower():
                 is_hp = True
                 platform_name = 'HP OmniBook X (Snapdragon X Elite)'
-        except Exception:
-            pass
 
-        try:
-            cpu_name = subprocess.check_output(
-                ['powershell', '-NoProfile', '-Command', "(Get-CimInstance Win32_Processor | Select-Object -First 1 -ExpandProperty Name)"],
-                text=True, stderr=subprocess.DEVNULL, timeout=2
-            ).strip()
-            if 'snapdragon' in cpu_name.lower() or 'qualcomm' in cpu_name.lower() or 'oryon' in cpu_name.lower():
-                is_snapdragon = True
-                soc_model = cpu_name
+            cpu_val = _get_reg(winreg.HKEY_LOCAL_MACHINE, r'HARDWARE\DESCRIPTION\System\CentralProcessor\0', 'ProcessorNameString')
+            if cpu_val:
+                soc_model = cpu_val
+                if any(x in cpu_val.lower() for x in ('snapdragon', 'qualcomm', 'oryon')):
+                    is_snapdragon = True
         except Exception:
             pass
 
