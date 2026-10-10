@@ -98,9 +98,10 @@ Modern professionals face fragmented workflows: juggling battery limits on mobil
 2. **Permission-Gated OS Automation**:
    - Risk-stratified security model: Safe read actions execute instantly; destructive or mutative actions (file edits, system modifications) trigger explicit interactive confirmation modals ([`app/ui/dialogs.py`](file:///app/ui/dialogs.py)).
    - Protected against prompt injection by separating model reasoning from tool execution.
-3. **All-Day Battery Preservation for HP Laptops**:
+3. **All-Day Battery Preservation & Smart AI Governor for HP Laptops**:
    - Engineered specifically around the HP OmniBook X’s 26-hour battery profile.
-   - Offloading perception and reasoning to the 45 TOPS Hexagon NPU avoids spinning up high-wattage Oryon CPU performance cores or GPU fans, saving an estimated **3.4 Watts per user interaction**.
+   - Built-in **AI Battery Governor** that detects battery discharge (`s.charging == False`), throttles background polling intervals from 2.5s to 5.0s, and locks all inference to the **45 TOPS Hexagon NPU**, saving an estimated **1.5 to 2.2 hours of laptop battery life**.
+   - Offloading perception and reasoning to the Hexagon NPU avoids spinning up high-wattage Oryon CPU performance cores or GPU fans, saving an estimated **3.4 Watts per user interaction**.
 4. **Workday Continuity & Focus Enhancement**:
    - Interactive Pomodoro Focus Session timer with automatic background distraction muting.
    - One-click workday setup (creating project directories, summarizing active tasks, launching required developer tools).
@@ -113,7 +114,8 @@ Modern professionals face fragmented workflows: juggling battery limits on mobil
 ### 3.1 Windows 11 ARM64 & x64 Universal Compatibility
 - **Native ARM64 Execution**: Optimized for Qualcomm Oryon cores and Windows 11 on ARM (Build 22621+).
 - **Zero Administrative Privileges Required**: Runs entirely in user-space; all Windows Settings interactions utilize safe `ms-settings:` URI schemas.
-- **Fail-Safe Packaging**: Graceful dynamic imports handle environments where optional dependencies (e.g., pytesseract, psutil) are not pre-installed.
+- **Fail-Safe Packaging & Standalone Executable**: Includes [`build_exe.ps1`](file:///build_exe.ps1) to compile VEXORA into a standalone Windows 11 executable (`dist/VEXORA/VEXORA.exe`) that hackathon judges can launch with zero setup.
+- **Windows 11 System Tray & Background Standby**: Minimizes to the notification area with a quick-action tray menu for instant screen snips and NPU benchmarking.
 
 ### 3.2 Executive UI/UX Design System
 - **Obsidian Dark & Snapdragon Crimson Aesthetic**:

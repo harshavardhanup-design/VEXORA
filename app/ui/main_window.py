@@ -228,6 +228,7 @@ class MainWindow(QMainWindow):
         self.refresh_timer.timeout.connect(self.refresh)
         self.refresh_timer.start(preferred_refresh_ms())
         self.refresh()
+        self._init_tray()
 
     def build(self):
         root = QWidget()
@@ -1641,9 +1642,53 @@ class MainWindow(QMainWindow):
             self._health_cache_ms = now
         return self._health_cache
 
+    def _init_tray(self):
+        try:
+            if QSystemTrayIcon.isSystemTrayAvailable():
+                self.tray = QSystemTrayIcon(self)
+                self.tray.setIcon(self.windowIcon())
+                tray_menu = QMenu()
+                act_show = tray_menu.addAction("Show VEXORA")
+                act_show.triggered.connect(self.showNormal)
+                act_bench = tray_menu.addAction("⚡ Run NPU Benchmark")
+                act_bench.triggered.connect(lambda: self._feature_command('benchmark npu'))
+                act_snip = tray_menu.addAction("📷 Snip Screen")
+                act_snip.triggered.connect(lambda: self._feature_command('__capture_screen__'))
+                tray_menu.addSeparator()
+                act_quit = tray_menu.addAction("Quit")
+                act_quit.triggered.connect(QApplication.instance().quit)
+                self.tray.setContextMenu(tray_menu)
+                self.tray.show()
+            else:
+                self.tray = None
+        except Exception:
+            self.tray = None
+
+    def closeEvent(self, event):
+        if getattr(self, 'tray', None) and self.tray.isVisible():
+            self.hide()
+            self.tray.showMessage(
+                f"{self.assistant_name} Copilot+",
+                "VEXORA running in background with Hexagon NPU standby.",
+                QSystemTrayIcon.MessageIcon.Information,
+                1500
+            )
+            event.ignore()
+        else:
+            event.accept()
+
     def refresh(self):
         s = self._snapshot_cached()
         npu = get_npu_telemetry()
+
+        # HP PC Smart Battery Governor (extends battery life on HP Snapdragon PCs)
+        if s.battery is not None and not s.charging:
+            if hasattr(self, 'refresh_timer') and self.refresh_timer.interval() != 5000:
+                self.refresh_timer.setInterval(5000)
+        else:
+            if hasattr(self, 'refresh_timer') and self.refresh_timer.interval() != 2500:
+                self.refresh_timer.setInterval(2500)
+
         p = self.pages.get(self.current_page)
         if p and hasattr(p, 'battery'):
             p.battery.set_state(s.battery, s.charging)

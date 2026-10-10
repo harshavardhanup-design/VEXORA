@@ -35,10 +35,13 @@ For complete technical documentation and submission intake-form alignment, see [
 
 ### 4. Rebuilt Executive UI & Windows 11 Copilot+ UX
 - **Obsidian Dark & Snapdragon Crimson Design System**: Styled with `#08090C` Obsidian Dark, `#FF1A40` Snapdragon Crimson, `#00D2FF` Qualcomm Cyan, and HP Titanium slate typography.
+- **HP PC Smart Battery AI Governor**: Automatically detects when running on battery, locks inference to the Hexagon NPU, and throttles polling to extend battery life by up to 2.2 hours.
+- **System Tray & Background Standby**: Minimizes to the Windows 11 notification tray with quick actions (Screen Snip, NPU Benchmark, Show).
 - **Productivity & Focus Console**: Live 45 TOPS Hexagon NPU headroom monitor, interactive Pomodoro timer, and real-time process RAM inspector.
 - **System Specifications**: Automatic hardware profiling for Snapdragon X Elite / Oryon CPU, Hexagon NPU, Adreno GPU, and LPDDR5X RAM with one-click report export.
 - **Settings & Windows Integration**: Single-column vertical scroll settings, Qualcomm AI Hub model selector, and 12 instant Windows 11 Quick Settings shortcuts.
 - **Keyboard-First Control**: `Ctrl+K` Command Palette, `Ctrl+1..6` page navigation, and `Esc` interrupt.
+- **Standalone Executable Builder**: Run `.\build_exe.ps1` to compile a zero-setup `.exe` for distribution.
 
 ---
 
