@@ -16,9 +16,11 @@ BORDER_HOVER = "#2A3249"
 BORDER_FOCUS = "#00D2FF"
 
 # Snapdragon & Qualcomm Accents
+ACCENT_PRIMARY = "#FF1A40"        # Primary Brand Accent (Snapdragon Crimson)
 ACCENT_SNAPDRAGON = "#FF1A40"     # Snapdragon Fire Crimson
 ACCENT_QUALCOMM = "#00D2FF"       # Qualcomm Electric Cyan
 ACCENT_NEON = "#00F5A0"           # Hexagon NPU Green
+ACCENT_SUCCESS = "#00F5A0"        # Success Green
 ACCENT_LIME = "#B7FF3C"           # Legacy Lime compatibility
 ACCENT_WARNING = "#FFB300"        # Amber
 ACCENT_DANGER = "#FF2E50"         # Coral Red
