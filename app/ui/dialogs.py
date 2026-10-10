@@ -127,7 +127,7 @@ class CommandPaletteDialog(QDialog):
         """)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(18, 16, 18, 16)
+        layout.setContentsMargins(20, 18, 20, 18)
         layout.setSpacing(12)
 
         # Input row
@@ -162,22 +162,26 @@ class CommandPaletteDialog(QDialog):
         self.list_widget.setMaximumHeight(260)
         self.list_widget.setStyleSheet(f"""
             QListWidget {{
-                background: transparent;
-                border: 0;
-                color: {TEXT_PRIMARY};
+                background: #0B0D16;
+                border: 1px solid #1C2030;
+                border-radius: 10px;
+                padding: 4px;
+                color: #FFFFFF;
                 outline: none;
             }}
             QListWidget::item {{
-                padding: 9px 12px;
-                border-radius: 8px;
+                padding: 10px 12px;
+                border-radius: 6px;
                 font-size: 13px;
+                color: #CBD5E1;
             }}
             QListWidget::item:hover {{
-                background: rgba(255, 255, 255, 0.04);
+                background: rgba(255, 255, 255, 0.06);
+                color: #FFFFFF;
             }}
             QListWidget::item:selected {{
-                background: rgba(255, 26, 64, 0.16);
-                border: 1px solid rgba(255, 26, 64, 0.35);
+                background: rgba(255, 26, 64, 0.22);
+                border: 1px solid rgba(255, 26, 64, 0.5);
                 color: #FFFFFF;
                 font-weight: 750;
             }}
@@ -207,12 +211,20 @@ class CommandPaletteDialog(QDialog):
         hint.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
         layout.addWidget(hint)
 
+    def paintEvent(self, e):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setBrush(QColor('#121522'))
+        p.setPen(QPen(QColor(BORDER_HOVER), 1.5))
+        rect = self.rect().adjusted(1, 1, -1, -1)
+        p.drawRoundedRect(rect, 16, 16)
+
     def showEvent(self, e):
         super().showEvent(e)
         if self.parent():
             parent_geo = self.parent().geometry()
             x = parent_geo.x() + max(0, (parent_geo.width() - self.width()) // 2)
-            y = parent_geo.y() + max(40, (parent_geo.height() - self.height()) // 3)
+            y = parent_geo.y() + max(40, (parent_geo.height() - self.height()) // 4)
             self.move(x, y)
         self.input_edit.setFocus()
 

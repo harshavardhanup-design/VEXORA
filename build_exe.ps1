@@ -21,6 +21,7 @@ Write-Host "`n[2/3] Compiling VEXORA Executable (PyInstaller)..." -ForegroundCol
 & $PythonExe -m PyInstaller `
   --noconsole `
   --onedir `
+  --noconfirm `
   --name "VEXORA" `
   --clean `
   --add-data "app;app" `
