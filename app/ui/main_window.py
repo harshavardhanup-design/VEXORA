@@ -370,7 +370,9 @@ class MainWindow(QMainWindow):
         g.setSpacing(12)
         for i, (a, b, c) in enumerate(items):
             card = ModernMetricCard(a, b, c)
+            card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
             g.addWidget(card, 0, i)
+            g.setColumnStretch(i, 1)
         return g
 
     def overview(self, p, l):
@@ -1037,23 +1039,32 @@ class MainWindow(QMainWindow):
     def specifications(self, p, l):
         """Hardware specifications with Snapdragon X Elite & HP platform profiles."""
         specs = self.get_specifications()
+        is_snap = self.snapdragon_profile.is_snapdragon
+        cpu_sub = 'Qualcomm Oryon' if is_snap else 'Host Architecture'
+        gpu_sub = 'Qualcomm Adreno' if is_snap else 'Host GPU Accelerator'
         l.addLayout(self.cards([
-            ('SOC PROCESSOR', 'Oryon Architecture', specs.get('cpu', 'CPU')[:18] + '…'),
+            ('SOC PROCESSOR', cpu_sub, specs.get('cpu', 'CPU')[:18] + '…'),
             ('HEXAGON NPU', 'Dedicated AI Engine', '45.0 TOPS (QNN)'),
-            ('GRAPHICS', 'Adreno Adapter', specs.get('gpu', 'GPU')[:18] + '…'),
-            ('HP PC PLATFORM', 'Copilot+ Device', specs.get('platform_name', 'HP OmniBook')[:18])
+            ('GRAPHICS', gpu_sub, specs.get('gpu', 'GPU')[:18] + '…'),
+            ('HP PC PLATFORM', 'Copilot+ Target', specs.get('platform_name', 'HP OmniBook X')[:18])
         ]))
 
         box = QFrame()
         box.setObjectName('SpecCard')
         bl = QVBoxLayout(box)
         bl.setContentsMargins(20, 18, 20, 18)
-        bl.setSpacing(12)
+        bl.setSpacing(14)
 
         top = QHBoxLayout()
+        title_v = QVBoxLayout()
+        title_v.setSpacing(2)
         title = QLabel('SNAPDRAGON-POWERED HP PC HARDWARE PROFILE')
         title.setObjectName('SectionSmall')
-        top.addWidget(title)
+        sub = QLabel('Real-Time Hardware Architecture & Qualcomm Hexagon 45 TOPS Profile')
+        sub.setStyleSheet('color: #64748B; font-size: 11px;')
+        title_v.addWidget(title)
+        title_v.addWidget(sub)
+        top.addLayout(title_v)
         top.addStretch()
 
         btn_copy = QPushButton('📋 Copy Specs Report')
@@ -1073,9 +1084,9 @@ class MainWindow(QMainWindow):
 
         fields = [
             ("Platform / PC Model", specs.get('platform_name', 'HP OmniBook X')),
-            ("Operating System", specs.get('edition', 'Windows 11 on ARM')),
-            ("Host Architecture", specs.get('arch', 'ARM64 (Qualcomm Oryon)')),
-            ("Neural Processing Unit", "Qualcomm® Hexagon™ NPU (45 TOPS Peak)"),
+            ("Operating System", f"{specs.get('edition', 'Windows 11')} ({specs.get('windows', '')})"),
+            ("Host Architecture", f"{specs.get('arch', 'x64')} • Qualcomm Oryon Target"),
+            ("Neural Processing Unit", "Qualcomm® Hexagon™ NPU (45 TOPS Peak Throughput)"),
             ("AI Execution Provider", specs.get('execution_provider', 'QNNExecutionProvider / DirectML')),
             ("Graphics Accelerator", specs.get('gpu', 'Qualcomm Adreno GPU')),
             ("System Memory (RAM)", specs.get('ram', '16.0 GB LPDDR5X')),
@@ -1086,15 +1097,47 @@ class MainWindow(QMainWindow):
 
         for i, (k, v) in enumerate(fields):
             row_frame = QFrame()
-            row_frame.setStyleSheet(f"background: {BG_INPUT}; border: 1px solid {BORDER_SUBTLE}; border-radius: 9px; padding: 10px 14px;")
+            row_frame.setObjectName('SpecGridItem')
+            row_frame.setStyleSheet(f"""
+                QFrame#SpecGridItem {{
+                    background: {BG_INPUT};
+                    border: 1px solid {BORDER_SUBTLE};
+                    border-radius: 10px;
+                }}
+                QFrame#SpecGridItem:hover {{
+                    border: 1px solid {BORDER_HOVER};
+                    background: #141724;
+                }}
+            """)
             rf_l = QVBoxLayout(row_frame)
-            rf_l.setContentsMargins(4, 4, 4, 4)
+            rf_l.setContentsMargins(14, 10, 14, 10)
             rf_l.setSpacing(4)
+
             lbl_k = QLabel(k.upper())
-            lbl_k.setStyleSheet("color: #64748B; font-size: 10px; font-weight: 800; letter-spacing: 1px;")
-            lbl_v = QLabel(v)
-            lbl_v.setStyleSheet("color: #F8FAFC; font-size: 13px; font-weight: 750;")
+            lbl_k.setObjectName('SpecKey')
+            lbl_k.setStyleSheet(f"""
+                background: transparent;
+                border: none;
+                color: {ACCENT_QUALCOMM if ('NPU' in k or 'Snapdragon' in k or 'Execution' in k) else '#828BA2'};
+                font-size: 11px;
+                font-weight: 800;
+                letter-spacing: 0.8px;
+                padding: 0;
+            """)
+
+            lbl_v = QLabel(str(v))
+            lbl_v.setObjectName('SpecVal')
+            lbl_v.setStyleSheet("""
+                background: transparent;
+                border: none;
+                color: #FFFFFF;
+                font-size: 13px;
+                font-weight: 700;
+                padding: 0;
+            """)
             lbl_v.setWordWrap(True)
+            lbl_v.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
             rf_l.addWidget(lbl_k)
             rf_l.addWidget(lbl_v)
             grid.addWidget(row_frame, i // 2, i % 2)
@@ -1130,7 +1173,8 @@ class MainWindow(QMainWindow):
         }
         try:
             import psutil
-            info['ram'] = f"{psutil.virtual_memory().total / (1024**3):.1f} GB LPDDR5X RAM"
+            total_gb = psutil.virtual_memory().total / (1024**3)
+            info['ram'] = f"{total_gb:.1f} GB ({'LPDDR5X' if prof.is_snapdragon else 'Host RAM • Target: 16.0 GB LPDDR5X'})"
         except Exception:
             pass
 
