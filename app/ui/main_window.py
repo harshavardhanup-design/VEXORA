@@ -319,6 +319,29 @@ class MainWindow(QMainWindow):
         v.addWidget(b)
         h.addLayout(v)
         h.addStretch()
+
+        btn_cmd = QPushButton("⚡ Spotlight (Ctrl+K)")
+        btn_cmd.setObjectName("SpotlightButton")
+        btn_cmd.setToolTip("Open Global Spotlight Command Palette (Ctrl+K, Alt+Space)")
+        btn_cmd.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_cmd.setStyleSheet(f"""
+            QPushButton#SpotlightButton {{
+                background: rgba(255, 26, 64, 0.12);
+                border: 1px solid rgba(255, 26, 64, 0.4);
+                border-radius: 8px;
+                padding: 6px 14px;
+                font-size: 11px;
+                font-weight: 750;
+                color: #FFFFFF;
+            }}
+            QPushButton#SpotlightButton:hover {{
+                background: rgba(255, 26, 64, 0.25);
+                border: 1px solid #FF1A40;
+            }}
+        """)
+        btn_cmd.clicked.connect(self.open_command_palette)
+        h.addWidget(btn_cmd)
+
         bat = ModernBatteryWidget()
         h.addWidget(bat)
         p.battery = bat
@@ -557,6 +580,7 @@ class MainWindow(QMainWindow):
         for p_label, p_cmd in [
             ("⚡ NPU Benchmark", "benchmark npu"),
             ("🔋 Battery Health", "How is my PC?"),
+            ("🌱 ESG Impact", "esg report"),
             ("📷 Snip Screen", "__capture_screen__"),
             ("🔍 Active Apps", "Show running apps"),
             ("📋 Recent Files", "Show recent files")
@@ -729,6 +753,10 @@ class MainWindow(QMainWindow):
     def install_shortcuts(self):
         self.shortcut_palette = QShortcut(QKeySequence('Ctrl+K'), self)
         self.shortcut_palette.activated.connect(self.open_command_palette)
+        self.shortcut_palette_alt = QShortcut(QKeySequence('Alt+Space'), self)
+        self.shortcut_palette_alt.activated.connect(self.open_command_palette)
+        self.shortcut_palette_ctrl = QShortcut(QKeySequence('Ctrl+Space'), self)
+        self.shortcut_palette_ctrl.activated.connect(self.open_command_palette)
         self.shortcut_stop = QShortcut(QKeySequence('Esc'), self)
         self.shortcut_stop.activated.connect(self.stop)
         for idx, (_, key) in enumerate(self.NAV, 1):
@@ -1680,6 +1708,8 @@ class MainWindow(QMainWindow):
                 tray_menu = QMenu()
                 act_show = tray_menu.addAction("Show VEXORA")
                 act_show.triggered.connect(self.showNormal)
+                act_spotlight = tray_menu.addAction("⚡ Spotlight Command Bar (Ctrl+K)")
+                act_spotlight.triggered.connect(self.open_command_palette)
                 act_bench = tray_menu.addAction("⚡ Run NPU Benchmark")
                 act_bench.triggered.connect(lambda: self._feature_command('benchmark npu'))
                 act_snip = tray_menu.addAction("📷 Snip Screen")

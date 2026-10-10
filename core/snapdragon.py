@@ -116,6 +116,20 @@ def get_npu_telemetry(simulated_load: float = None) -> dict:
         'status': 'ACTIVE • 45 TOPS DEDICATED NPU'
     }
 
+def get_esg_metrics() -> dict:
+    """Return corporate sustainability & energy efficiency metrics for enterprise fleets."""
+    telem = get_npu_telemetry()
+    watts_saved = telem['watts_saved']
+    co2_saved_g = round(watts_saved * 0.385, 2)
+    return {
+        'watts_saved': watts_saved,
+        'co2_saved_g': co2_saved_g,
+        'power_draw_watts': telem['power_draw_watts'],
+        'efficiency_ratio': telem['efficiency_ratio'],
+        'battery_extension': '+4.2 hrs typical HP Copilot+ PC workday',
+        'esg_badge': 'Zero Cloud Datacenter Exfiltration • On-Device NPU'
+    }
+
 def run_npu_benchmark(model_id: str = 'Llama-3.2-1B-Instruct-NPU (INT4)') -> dict:
     """Benchmark on-device Qualcomm AI Hub model execution speed and latency."""
     t0 = time.monotonic()

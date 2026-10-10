@@ -17,6 +17,12 @@ def _install_excepthook():
 
 
 def main():
+    if hasattr(sys.stdout, 'reconfigure'):
+        try:
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
     configure()
     _install_excepthook()
     # Qt imports happen after logging so import-time failures are recorded too.

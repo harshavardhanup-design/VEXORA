@@ -204,17 +204,67 @@ class ModernMessageWidget(QFrame):
         self._format_body(text)
 
     def _format_body(self, text: str):
-        # Clean formatted representation
-        if "```" in text:
-            # Basic HTML code block formatting for Qt RichText
+        if not text:
+            self.body.setTextFormat(Qt.TextFormat.PlainText)
+            self.body.setText("")
+            return
+
+        has_formatting = any(tok in text for tok in ("```", "•", "**", "✓", "✕", "⚡", "`"))
+        if has_formatting:
             escaped = html.escape(text)
-            formatted = re.sub(
+
+            # Code blocks
+            escaped = re.sub(
                 r'```([a-zA-Z0-9_-]*)\n(.*?)```',
-                r'<pre style="background:#0D0F16; border:1px solid #1F2333; border-radius:8px; padding:10px; font-family:Consolas, monospace; color:#00F2FE;">\2</pre>',
+                r'<pre style="background:#0D0F16; border:1px solid #1F2333; border-radius:8px; padding:10px; font-family:Consolas, monospace; color:#00F5A0;">\2</pre>',
                 escaped,
                 flags=re.DOTALL
             )
-            formatted = formatted.replace('\n', '<br>')
+
+            # Inline code
+            escaped = re.sub(
+                r'`([^`]+)`',
+                r'<code style="background:rgba(255,255,255,0.08); padding:2px 6px; border-radius:4px; font-family:Consolas, monospace; color:#00F5A0;">\1</code>',
+                escaped
+            )
+
+            # Bold text
+            escaped = re.sub(
+                r'\*\*([^*]+)\*\*',
+                r'<strong style="color:#FFFFFF; font-weight:800;">\1</strong>',
+                escaped
+            )
+
+            # Highlighted status bullet items
+            escaped = re.sub(
+                r'•\s+([A-Za-z0-9_ -]+):',
+                r'<span style="color:#FF1A40; font-weight:bold;">•</span> <strong style="color:#E2E8F0;">\1:</strong>',
+                escaped
+            )
+            escaped = re.sub(
+                r'•\s+',
+                r'<span style="color:#FF1A40; font-weight:bold;">•</span> ',
+                escaped
+            )
+
+            # Success, error and accelerator badges
+            escaped = re.sub(
+                r'✓\s*([^<\n]+)',
+                r'<span style="color:#00F5A0; font-weight:bold;">✓ \1</span>',
+                escaped
+            )
+            escaped = re.sub(
+                r'✕\s*([^<\n]+)',
+                r'<span style="color:#FF1A40; font-weight:bold;">✕ \1</span>',
+                escaped
+            )
+            escaped = re.sub(
+                r'⚡\s*([^<\n]+)',
+                r'<span style="color:#FF1A40; font-weight:900;">⚡</span> <strong style="color:#FFFFFF;">\1</strong>',
+                escaped
+            )
+
+            formatted = escaped.replace('\n', '<br>')
             self.body.setTextFormat(Qt.TextFormat.RichText)
             self.body.setText(formatted)
         else:

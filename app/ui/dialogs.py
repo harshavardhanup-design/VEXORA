@@ -109,14 +109,15 @@ class PermissionDialog(QDialog):
 
 
 class CommandPaletteDialog(QDialog):
-    """Floating Spotlight Command Bar for quick actions and questions (Ctrl+K)."""
+    """Floating Spotlight Command Bar for quick actions and questions (Ctrl+K / Alt+Space)."""
 
     def __init__(self, parent, on_execute_callback):
         super().__init__(parent)
         self.on_execute = on_execute_callback
         self.setModal(True)
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Popup)
-        self.setFixedWidth(560)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setFixedWidth(580)
         self.setStyleSheet(f"""
             QDialog {{
                 background: {BG_CARD};
@@ -126,51 +127,66 @@ class CommandPaletteDialog(QDialog):
         """)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setContentsMargins(18, 16, 18, 16)
         layout.setSpacing(12)
 
         # Input row
         in_row = QHBoxLayout()
+        in_row.setSpacing(10)
         icon = QLabel("✦")
-        icon.setStyleSheet(f"color: {ACCENT_PRIMARY}; font-size: 16px; font-weight: 900;")
+        icon.setStyleSheet(f"color: {ACCENT_PRIMARY}; font-size: 18px; font-weight: 900;")
         in_row.addWidget(icon)
 
         self.input_edit = QLineEdit()
-        self.input_edit.setPlaceholderText("Search actions, ask a question, or type a command…")
+        self.input_edit.setPlaceholderText("Search actions, ask VEXORA, or type a command…")
         self.input_edit.setStyleSheet(f"""
-            background: {BG_INPUT};
-            border: 1px solid {BORDER_SUBTLE};
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-size: 14px;
-            color: {TEXT_PRIMARY};
+            QLineEdit {{
+                background: {BG_INPUT};
+                border: 1px solid {BORDER_SUBTLE};
+                border-radius: 10px;
+                padding: 10px 14px;
+                font-size: 14px;
+                color: {TEXT_PRIMARY};
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {ACCENT_PRIMARY};
+            }}
         """)
         self.input_edit.returnPressed.connect(self._run_current)
+        self.input_edit.textChanged.connect(self._filter_items)
         in_row.addWidget(self.input_edit, 1)
         layout.addLayout(in_row)
 
         # Suggested actions list
         self.list_widget = QListWidget()
+        self.list_widget.setMaximumHeight(260)
         self.list_widget.setStyleSheet(f"""
             QListWidget {{
                 background: transparent;
                 border: 0;
                 color: {TEXT_PRIMARY};
+                outline: none;
             }}
             QListWidget::item {{
-                padding: 8px 12px;
+                padding: 9px 12px;
                 border-radius: 8px;
                 font-size: 13px;
             }}
+            QListWidget::item:hover {{
+                background: rgba(255, 255, 255, 0.04);
+            }}
             QListWidget::item:selected {{
-                background: rgba(0, 242, 254, 0.12);
-                color: {ACCENT_PRIMARY};
+                background: rgba(255, 26, 64, 0.16);
+                border: 1px solid rgba(255, 26, 64, 0.35);
+                color: #FFFFFF;
                 font-weight: 750;
             }}
         """)
 
-        self.items = [
-            ("⚡ Check PC Health & Battery", "How is my PC?"),
+        self.all_items = [
+            ("⚡ Benchmark Qualcomm Hexagon NPU", "benchmark npu"),
+            ("🔋 Check PC Health & Battery", "How is my PC?"),
+            ("🌱 Enterprise ESG & Carbon Report", "esg report"),
             ("📷 Capture Screen & Analyze", "__capture_screen__"),
             ("🧮 Open Calculator", "open calculator"),
             ("📝 Open Notepad", "launch notepad"),
@@ -179,28 +195,76 @@ class CommandPaletteDialog(QDialog):
             ("🔍 Show Running Apps", "Show running apps"),
             ("📋 Show Recent Files", "Show recent files"),
             ("📊 Inspect System Specifications", "Show system specifications"),
+            ("💼 Workday Workspace Setup", "Prepare my workspace")
         ]
-
-        for label, _ in self.items:
-            self.list_widget.addItem(label)
+        self.current_filtered = list(self.all_items)
+        self._populate_list(self.all_items)
 
         self.list_widget.itemDoubleClicked.connect(self._on_item_chosen)
         layout.addWidget(self.list_widget)
 
-        hint = QLabel("Esc to close • Enter to execute")
+        hint = QLabel("Esc to close • Enter to execute • ↑↓ to navigate")
         hint.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 11px;")
         layout.addWidget(hint)
 
+    def showEvent(self, e):
+        super().showEvent(e)
+        if self.parent():
+            parent_geo = self.parent().geometry()
+            x = parent_geo.x() + max(0, (parent_geo.width() - self.width()) // 2)
+            y = parent_geo.y() + max(40, (parent_geo.height() - self.height()) // 3)
+            self.move(x, y)
+        self.input_edit.setFocus()
+
+    def _populate_list(self, items):
+        self.list_widget.clear()
+        self.current_filtered = items
+        for label, _ in items:
+            self.list_widget.addItem(label)
+        if items:
+            self.list_widget.setCurrentRow(0)
+
+    def _filter_items(self, text):
+        q = (text or '').strip().lower()
+        if not q:
+            self._populate_list(self.all_items)
+            return
+        matches = [(lbl, cmd) for (lbl, cmd) in self.all_items if q in lbl.lower() or q in cmd.lower()]
+        if not matches:
+            matches = [(f"✦ Ask VEXORA: \"{text.strip()}\"", text.strip())]
+        self._populate_list(matches)
+
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key.Key_Down:
+            curr = self.list_widget.currentRow()
+            if curr < self.list_widget.count() - 1:
+                self.list_widget.setCurrentRow(curr + 1)
+            return
+        elif e.key() == Qt.Key.Key_Up:
+            curr = self.list_widget.currentRow()
+            if curr > 0:
+                self.list_widget.setCurrentRow(curr - 1)
+            return
+        elif e.key() == Qt.Key.Key_Escape:
+            self.reject()
+            return
+        super().keyPressEvent(e)
+
     def _run_current(self):
         text = self.input_edit.text().strip()
-        if not text and self.list_widget.currentRow() >= 0:
-            text = self.items[self.list_widget.currentRow()][1]
-        if text:
+        row = self.list_widget.currentRow()
+        if row >= 0 and row < len(self.current_filtered):
+            target_cmd = self.current_filtered[row][1]
+            if text and not any(text.lower() in lbl.lower() for lbl, _ in self.all_items):
+                target_cmd = text
+            self.accept()
+            self.on_execute(target_cmd)
+        elif text:
             self.accept()
             self.on_execute(text)
 
     def _on_item_chosen(self, item):
         row = self.list_widget.row(item)
-        if 0 <= row < len(self.items):
+        if 0 <= row < len(self.current_filtered):
             self.accept()
-            self.on_execute(self.items[row][1])
+            self.on_execute(self.current_filtered[row][1])

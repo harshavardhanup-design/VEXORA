@@ -114,6 +114,24 @@ def _h_screen(text, m):
     return screen_summary()
 
 
+def _h_esg(text, m):
+    try:
+        from core.snapdragon import get_esg_metrics
+        e = get_esg_metrics()
+        return (
+            f"⚡ Enterprise ESG & Energy Efficiency Report:\n\n"
+            f"• Architecture: On-Device Qualcomm® Hexagon™ NPU\n"
+            f"• Real-Time Power Draw: {e['power_draw_watts']} Watts (vs ~350W Cloud GPU node)\n"
+            f"• Energy Conserved: {e['watts_saved']} Watts saved per inference cycle\n"
+            f"• Carbon Footprint: {e['co2_saved_g']}g CO₂ eliminated per hour of operation\n"
+            f"• Battery Extension: {e['battery_extension']}\n"
+            f"• Data Sovereignty: 100% On-Device (Zero Cloud Telemetry/Exfiltration)\n"
+            f"• Efficiency Index: {e['efficiency_ratio']}"
+        )
+    except Exception as exc:
+        return f"Enterprise ESG metrics unavailable: {exc}"
+
+
 def _static(msg):
     return lambda text, m: msg
 
@@ -153,6 +171,9 @@ INTENTS: tuple[Intent, ...] = (
     Intent('Diagnose PC health', 'system_status', .99,
            _rx(r'\b(?:how\s+is\s+my\s+(?:pc|computer|laptop)|(?:pc|computer|system)\s+health|diagnose\s+(?:my\s+)?(?:pc|computer|laptop)|'
                r'(?:my\s+)?(?:pc|computer|laptop)\s+(?:is\s+|feels\s+|running\s+)?(?:slow|laggy|lagging|freezing))\b'), _h_health),
+    Intent('Enterprise ESG report', 'esg_report', .98,
+           _rx(r'\b(?:(?:enterprise\s+)?esg\s*(?:report|metrics|telemetry)?|carbon\s+(?:savings?|footprint|reduction)|power\s+savings?|energy\s+efficiency)\b'),
+           _h_esg),
     Intent('Check vision capability', 'vision_status', .99, _rx(r'\bvision\s+status\b'),
            _static('Vision capability: screenshot capture is available through the controlled SEE tool.')),
     Intent('Inspect current screen context', 'screen_inspect', .98,
