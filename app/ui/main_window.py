@@ -39,7 +39,7 @@ from app.ui.theme import (
     TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED,
     ACCENT_SNAPDRAGON, ACCENT_QUALCOMM, ACCENT_NEON, ACCENT_DANGER, ACCENT_WARNING, ACCENT_SUCCESS
 )
-from app.ui.dialogs import PermissionDialog, CommandPaletteDialog
+from app.ui.dialogs import PermissionDialog
 from app.ui.widgets import ModernMetricCard, ModernBatteryWidget, ModernMessageWidget
 
 
@@ -277,19 +277,6 @@ class MainWindow(QMainWindow):
         """)
         sl.addWidget(npu_badge)
 
-        spot_btn = QPushButton("✦ Quick Command (Ctrl+K)")
-        spot_btn.setStyleSheet(f"""
-            background: rgba(255, 26, 64, 0.08);
-            border: 1px solid rgba(255, 26, 64, 0.25);
-            border-radius: 9px;
-            color: {ACCENT_SNAPDRAGON};
-            font-size: 11px;
-            font-weight: 800;
-            padding: 8px 12px;
-        """)
-        spot_btn.clicked.connect(self.open_command_palette)
-        sl.addWidget(spot_btn)
-
         vs = vision_status()
         v = QLabel('●  VISION READY' if vs['screenshot'] else '●  VISION LIMITED')
         v.setObjectName('Local')
@@ -319,29 +306,6 @@ class MainWindow(QMainWindow):
         v.addWidget(b)
         h.addLayout(v)
         h.addStretch()
-
-        btn_cmd = QPushButton("⚡ Spotlight (Ctrl+K)")
-        btn_cmd.setObjectName("SpotlightButton")
-        btn_cmd.setToolTip("Open Global Spotlight Command Palette (Ctrl+K, Alt+Space)")
-        btn_cmd.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_cmd.setStyleSheet(f"""
-            QPushButton#SpotlightButton {{
-                background: rgba(255, 26, 64, 0.12);
-                border: 1px solid rgba(255, 26, 64, 0.4);
-                border-radius: 8px;
-                padding: 6px 14px;
-                font-size: 11px;
-                font-weight: 750;
-                color: #FFFFFF;
-            }}
-            QPushButton#SpotlightButton:hover {{
-                background: rgba(255, 26, 64, 0.25);
-                border: 1px solid #FF1A40;
-            }}
-        """)
-        btn_cmd.clicked.connect(self.open_command_palette)
-        h.addWidget(btn_cmd)
-
         bat = ModernBatteryWidget()
         h.addWidget(bat)
         p.battery = bat
@@ -751,21 +715,11 @@ class MainWindow(QMainWindow):
         )
 
     def install_shortcuts(self):
-        self.shortcut_palette = QShortcut(QKeySequence('Ctrl+K'), self)
-        self.shortcut_palette.activated.connect(self.open_command_palette)
-        self.shortcut_palette_alt = QShortcut(QKeySequence('Alt+Space'), self)
-        self.shortcut_palette_alt.activated.connect(self.open_command_palette)
-        self.shortcut_palette_ctrl = QShortcut(QKeySequence('Ctrl+Space'), self)
-        self.shortcut_palette_ctrl.activated.connect(self.open_command_palette)
         self.shortcut_stop = QShortcut(QKeySequence('Esc'), self)
         self.shortcut_stop.activated.connect(self.stop)
         for idx, (_, key) in enumerate(self.NAV, 1):
             sc = QShortcut(QKeySequence(f'Ctrl+{idx}'), self)
             sc.activated.connect(lambda k=key: self.navigate(k))
-
-    def open_command_palette(self):
-        dlg = CommandPaletteDialog(self, lambda cmd: self._feature_command(cmd))
-        dlg.exec_() if hasattr(dlg, 'exec_') else dlg.exec()
 
     def filter_quick_actions(self, value, buttons):
         q = (value or '').strip().lower()
@@ -1708,8 +1662,6 @@ class MainWindow(QMainWindow):
                 tray_menu = QMenu()
                 act_show = tray_menu.addAction("Show VEXORA")
                 act_show.triggered.connect(self.showNormal)
-                act_spotlight = tray_menu.addAction("⚡ Spotlight Command Bar (Ctrl+K)")
-                act_spotlight.triggered.connect(self.open_command_palette)
                 act_bench = tray_menu.addAction("⚡ Run NPU Benchmark")
                 act_bench.triggered.connect(lambda: self._feature_command('benchmark npu'))
                 act_snip = tray_menu.addAction("📷 Snip Screen")
