@@ -94,7 +94,14 @@ def _h_processes(text, m):
 def _h_health(text, m):
     s = _agent._cached('snapshot', _agent.health.snapshot)
     power = 'Charging' if s.charging else 'On battery' if s.battery is not None else 'Unavailable'
-    return f'PC health snapshot:\n• CPU: {s.cpu:.0f}%\n• RAM: {s.ram:.0f}%\n• Storage: {s.disk:.0f}%\n• Power: {power}'
+    npu_info = ''
+    try:
+        from core.snapdragon import get_npu_telemetry
+        telem = get_npu_telemetry()
+        npu_info = f"\n• NPU: {telem['npu_name']} ({telem['active_tops']} TOPS / {telem['peak_tops']:.0f} TOPS Peak)"
+    except Exception:
+        pass
+    return f'PC health snapshot:\n• CPU: {s.cpu:.0f}%\n• RAM: {s.ram:.0f}%\n• Storage: {s.disk:.0f}%\n• Power: {power}{npu_info}'
 
 
 def _h_performance(text, m):

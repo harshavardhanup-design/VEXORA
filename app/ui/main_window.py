@@ -407,12 +407,23 @@ class MainWindow(QMainWindow):
         stages.setSpacing(10)
         for st in agent_stage_data('IDLE'):
             card = QFrame()
-            card.setStyleSheet(f"background: {BG_INPUT}; border: 1px solid {BORDER_SUBTLE}; border-radius: 10px; padding: 10px;")
+            card.setObjectName('StageCard')
+            card.setStyleSheet(f"""
+                QFrame#StageCard {{
+                    background: {BG_INPUT};
+                    border: 1px solid {BORDER_SUBTLE};
+                    border-radius: 10px;
+                }}
+                QFrame#StageCard:hover {{
+                    border: 1px solid {BORDER_HOVER};
+                    background: #141724;
+                }}
+            """)
             cv = QVBoxLayout(card)
-            cv.setContentsMargins(8, 8, 8, 8)
+            cv.setContentsMargins(12, 10, 12, 10)
             cv.setSpacing(6)
             name = QLabel(st.name)
-            name.setStyleSheet("font-size: 11px; font-weight: 800; color: #FFF;")
+            name.setStyleSheet("background: transparent; border: none; font-size: 12px; font-weight: 850; color: #FFFFFF; padding: 0;")
             bar = QProgressBar()
             bar.setRange(0, 100)
             bar.setValue(st.progress)
@@ -420,7 +431,7 @@ class MainWindow(QMainWindow):
             bar.setFixedHeight(4)
             bar.setObjectName('StageBar')
             state = QLabel(st.state.upper())
-            state.setStyleSheet("font-size: 9px; font-weight: 800; color: #646B82; letter-spacing: 1px;")
+            state.setStyleSheet(f"background: transparent; border: none; font-size: 10px; font-weight: 800; color: {ACCENT_QUALCOMM if st.state == 'active' else '#646B82'}; letter-spacing: 1px; padding: 0;")
             cv.addWidget(name)
             cv.addWidget(bar)
             cv.addWidget(state)
@@ -1642,11 +1653,30 @@ class MainWindow(QMainWindow):
             self._health_cache_ms = now
         return self._health_cache
 
+    def _create_app_icon(self):
+        pix = QPixmap(32, 32)
+        pix.fill(Qt.GlobalColor.transparent)
+        p = QPainter(pix)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setBrush(QColor('#FF1A40'))
+        p.setPen(Qt.PenStyle.NoPen)
+        p.drawRoundedRect(2, 2, 28, 28, 6, 6)
+        p.setPen(QPen(QColor('#FFFFFF'), 2))
+        font = p.font()
+        font.setBold(True)
+        font.setPixelSize(16)
+        p.setFont(font)
+        p.drawText(pix.rect(), Qt.AlignmentFlag.AlignCenter, "V")
+        p.end()
+        return QIcon(pix)
+
     def _init_tray(self):
         try:
+            icon = self._create_app_icon()
+            self.setWindowIcon(icon)
             if QSystemTrayIcon.isSystemTrayAvailable():
                 self.tray = QSystemTrayIcon(self)
-                self.tray.setIcon(self.windowIcon())
+                self.tray.setIcon(icon)
                 tray_menu = QMenu()
                 act_show = tray_menu.addAction("Show VEXORA")
                 act_show.triggered.connect(self.showNormal)
@@ -1774,7 +1804,7 @@ class MainWindow(QMainWindow):
             self.add(key, 'ai', 'Permission required before this protected action. No changes made.', True)
             return
 
-        if res.plan and res.plan.get('tool') == 'safe_app_launcher':
+        if res.plan and (res.plan.get('tool') == 'safe_app_launcher' or res.plan.get('action') == 'windows_settings'):
             action = res.plan.get('action') or 'unknown'
             approved = True
             if self.settings.get('require_action_confirmation', True):
@@ -1786,6 +1816,10 @@ class MainWindow(QMainWindow):
                 return
             r = execute_action(action, approved=True)
             self.add(key, 'ai', res.text + '\n\n' + (('✓ ' + r.message) if r.ok else ('✕ ' + r.message)), True)
+            return
+
+        if res.text:
+            self.add(key, 'ai', res.text, True)
             return
 
         self.request_id += 1

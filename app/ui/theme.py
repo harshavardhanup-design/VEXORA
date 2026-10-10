@@ -38,6 +38,7 @@ def get_stylesheet(assistant_name: str = "VEXORA") -> str:
     return f"""
     * {{
         font-family: 'Segoe UI Variable Text', 'Segoe UI', -apple-system, system-ui, sans-serif;
+        font-size: 13px;
         outline: none;
     }}
 
