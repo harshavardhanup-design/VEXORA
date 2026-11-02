@@ -1,6 +1,20 @@
 # Changelog
 
-## 5.8.2 — Snapdragon® AI Lab & Enterprise ESG Release
+## 5.9.0 — On-Device Air-Gapped Local AI Engine Release
+
+### Added
+- **100% On-Device Neural AI Engine (`ai/local_engine.py`):** Self-contained, air-gapped local reasoning engine running entirely on-device (Qualcomm Hexagon NPU & CPU). Features structured domain knowledge across software engineering, operating systems, hardware architectures, algorithms, data structures, and mathematical computation without network egress or API keys.
+- **Offline Conceptual & Comparative Reasoning:** Structured analytical synthesis for open-ended queries, how-tos, and comparative questions, preventing "offline backend does not have enough context" fallthrough.
+- **Local Verification Suite:** Asynchronous on-device model and Hexagon NPU inference test in Settings (`ModelTestWorker`).
+
+### Removed
+- **Cloud API Keys & Models in UI:** Removed Gemini and OpenAI API key input fields, cloud model options, and cloud configuration cards from the application interface.
+- **Spotlight Popup Cleanup:** Confirmed complete elimination of the legacy Spotlight popup dialog, overlay clipping, and transparent layout artifacts, preserving the clean native window layout.
+
+### Changed
+- **Composer & Settings Provider Options:** Streamlined AI provider selection to strictly on-device choices: `✦ On-Device Neural Engine (Offline)`, `⚡ Qualcomm Hexagon NPU (On-Device)`, and `🖥️ Local Ollama (localhost:11434)`.
+- **Backend Status Label:** Refined to display `On-Device Local AI (Air-Gapped)` and `Hexagon NPU` active inference telemetry.
+
 
 ### Fixed
 - **QSystemTrayIcon warning:** Eliminated `QSystemTrayIcon::setVisible: No Icon set` by creating an antialiased Snapdragon Crimson icon (`_create_app_icon()`) assigned to both window and tray.

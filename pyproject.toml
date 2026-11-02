@@ -1,6 +1,6 @@
 [project]
 name = "vexora"
-version = "5.8.2"
+version = "5.9.0"
 description = "VEXORA — local-first Windows desktop AI assistant"
 requires-python = ">=3.10"
 

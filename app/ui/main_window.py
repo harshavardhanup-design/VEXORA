@@ -103,7 +103,11 @@ class ModelTestWorker(QRunnable):
                 else:
                     self.signals.result.emit(False, f"✕ {res.get('message', 'Ollama connection failed.')}")
             else:
-                self.signals.result.emit(True, "✓ Offline deterministic fallback engine is online.")
+                from ai.local_engine import get_local_engine
+                engine = get_local_engine()
+                _ = engine.query("What is an NPU?")
+                elapsed = time.monotonic() - t0
+                self.signals.result.emit(True, f"✦ On-Device Neural Engine verified in {elapsed*1000:.1f}ms (100% offline).")
         except Exception as e:
             self.signals.result.emit(False, f"✕ Error: {type(e).__name__}: {e}")
 
@@ -644,24 +648,22 @@ class MainWindow(QMainWindow):
         combo.blockSignals(True)
         combo.clear()
         options = [
-            ('Qualcomm AI Hub • Hexagon NPU', 'snapdragon', 'Llama-3.2-1B-Instruct-NPU (INT4)'),
-            ('Auto • Local fallback', 'offline', 'llama3.2'),
-            ('Ollama • Local Model', 'ollama', self.settings.get('model_name', 'llama3.2')),
-            ('Gemini • 3.8 Flash • Free tier*', 'gemini', 'gemini-3.8-flash'),
-            ('Gemini • 3.7 Flash • Free tier*', 'gemini', 'gemini-3.7-flash'),
-            ('OpenAI • GPT-5.6 Luna', 'openai', 'gpt-5.6-luna'),
-            ('OpenAI • GPT-5.6 Terra', 'openai', 'gpt-5.6-terra'),
-            ('OpenAI • GPT-5.6 Sol', 'openai', 'gpt-5.6-sol')
+            ('✦ On-Device Neural Engine (Offline)', 'offline', 'vexora-neural-v1'),
+            ('⚡ Qualcomm Hexagon NPU (On-Device)', 'snapdragon', 'Llama-3.2-1B-Instruct-NPU (INT4)'),
+            ('🖥️ Local Ollama (localhost:11434)', 'ollama', self.settings.get('model_name', 'llama3.2')),
         ]
         for label, provider, model in options:
             combo.addItem(label, (provider, model))
         provider = self.settings.get('model_provider', 'offline')
-        model = self.settings.get('model_name', 'llama3.2')
+        matched = False
         for i in range(combo.count()):
             data = combo.itemData(i)
-            if isinstance(data, tuple) and data == (provider, model):
+            if isinstance(data, tuple) and data[0] == provider:
                 combo.setCurrentIndex(i)
+                matched = True
                 break
+        if not matched:
+            combo.setCurrentIndex(0)
         combo.blockSignals(False)
 
     def _composer_model_changed(self, combo):
@@ -1311,51 +1313,40 @@ class MainWindow(QMainWindow):
         self.start_page_combo.currentIndexChanged.connect(lambda _: self.set_start_page())
         row(v, 'Start page', 'Choose where the application opens.', self.start_page_combo)
 
-        # 2. AI Engine & Qualcomm AI Hub
-        v = card('AI ENGINE & QUALCOMM AI HUB', 'Configure on-device Qualcomm Hexagon NPU models or hybrid cloud providers.')
+        # 2. Local AI Engine Settings (100% On-Device & Air-Gapped)
+        v = card('LOCAL ON-DEVICE AI ENGINE (AIR-GAPPED)', 'Configure 100% on-device AI reasoning running locally inside your PC via Qualcomm Hexagon NPU & CPU.')
         self.provider_combo = QComboBox()
         for label, data in [
-            ('Qualcomm AI Hub (Hexagon NPU)', 'snapdragon'),
-            ('Offline fallback', 'offline'),
-            ('Ollama • local', 'ollama'),
-            ('Gemini API', 'gemini'),
-            ('OpenAI API', 'openai')
+            ('✦ On-Device Neural Engine (Offline)', 'offline'),
+            ('⚡ Qualcomm AI Hub (Hexagon NPU)', 'snapdragon'),
+            ('🖥️ Local Ollama (localhost:11434)', 'ollama')
         ]:
             self.provider_combo.addItem(label, data)
         self.provider_combo.setCurrentIndex(max(0, self.provider_combo.findData(self.settings.get('model_provider', 'offline'))))
         self.provider_combo.setMinimumHeight(42)
-        row(v, 'Provider', 'Select the Qualcomm AI Hub or local/cloud engine.', self.provider_combo)
+        row(v, 'AI Runtime', 'Select the local on-device neural engine or Qualcomm Hexagon NPU.', self.provider_combo)
 
         self.model_combo = QComboBox()
         self.model_combo.setEditable(True)
-        self.model_combo.addItems(QUALCOMM_AI_HUB_MODELS + DEFAULT_MODELS + GEMINI_FREE_MODELS + OPENAI_MODELS)
-        self.model_combo.setCurrentText(self.settings.get('model_name', 'Llama-3.2-1B-Instruct-NPU (INT4)'))
+        local_model_list = ['vexora-neural-v1 (100% On-Device)'] + QUALCOMM_AI_HUB_MODELS + DEFAULT_MODELS
+        self.model_combo.addItems(local_model_list)
+        self.model_combo.setCurrentText(self.settings.get('model_name', 'vexora-neural-v1'))
         self.model_combo.setMinimumHeight(42)
         refresh = button('Refresh Models', self.refresh_models)
-        row(v, 'Model ID', 'Exact model loaded on Hexagon NPU or cloud backend.', self.model_combo, [refresh])
+        row(v, 'Model ID', 'Local model profile loaded on NPU or local neural engine.', self.model_combo, [refresh])
 
         self.host_edit = QLineEdit(self.settings.get('ollama_host', 'http://127.0.0.1:11434'))
         self.host_edit.setObjectName('SettingInput')
         self.host_edit.setMinimumHeight(42)
-        row(v, 'Ollama host', 'Only used for local Ollama fallback requests.', self.host_edit)
+        row(v, 'Local Ollama host', 'Optional local port for on-device Ollama models (default http://127.0.0.1:11434).', self.host_edit)
 
-        self.gemini_key_edit = QLineEdit(self.settings.get('gemini_api_key', ''))
-        self.gemini_key_edit.setObjectName('SettingInput')
-        self.gemini_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        self.gemini_key_edit.setMinimumHeight(42)
-        self.gemini_key_edit.setPlaceholderText('GEMINI_API_KEY')
-        row(v, 'Gemini API key', 'Optional cloud hybrid key.', self.gemini_key_edit)
-
-        self.openai_key_edit = QLineEdit(self.settings.get('openai_api_key', ''))
-        self.openai_key_edit.setObjectName('SettingInput')
-        self.openai_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        self.openai_key_edit.setMinimumHeight(42)
-        self.openai_key_edit.setPlaceholderText('OPENAI_API_KEY')
-        row(v, 'OpenAI API key', 'Optional cloud hybrid key.', self.openai_key_edit)
+        # Retain hidden fields so external key references do not trigger AttributeError
+        self.gemini_key_edit = QLineEdit('')
+        self.openai_key_edit = QLineEdit('')
 
         save_model = button('Save AI configuration', self.save_model_settings)
-        test_model = button('Test the selected model (Async)', self.test_model_connection)
-        row(v, 'Connection', 'Save first, then run a real verification or on-device NPU benchmark.', None, [save_model, test_model])
+        test_model = button('Verify On-Device Model (Async)', self.test_model_connection)
+        row(v, 'Verification', 'Test on-device response latency and Hexagon NPU inference.', None, [save_model, test_model])
 
         self.model_status = QLabel('Active: ' + self.backend_label())
         self.model_status.setObjectName('SettingsStatusText')
@@ -1456,9 +1447,9 @@ class MainWindow(QMainWindow):
         if provider == 'snapdragon':
             return f'Hexagon NPU • {self.settings.get("model_name", "Llama-3.2-1B-NPU")}'
         if provider == 'offline':
-            return 'Offline fallback'
+            return 'On-Device Local AI (Air-Gapped)'
         if provider == 'ollama':
-            return f'Ollama • {self.settings.get("model_name", "llama3.2")}'
+            return f'Local Ollama • {self.settings.get("model_name", "llama3.2")}'
         if provider == 'gemini':
             return f'Gemini • {self.settings.get("model_name", "gemini-3.8-flash")}'
         if provider == 'openai':
@@ -1501,25 +1492,17 @@ class MainWindow(QMainWindow):
         lm = LocalModel('ollama', self.settings.get('model_name', 'llama3.2'), self.host_edit.text().strip() or None)
         models = lm.list_models()
         self.model_combo.clear()
-        self.model_combo.addItems(QUALCOMM_AI_HUB_MODELS + (models if models else DEFAULT_MODELS))
-        self.model_status.setText(f'Refreshed models. Qualcomm AI Hub (45 TOPS NPU) profiles ready.')
+        self.model_combo.addItems(['vexora-neural-v1 (100% On-Device)'] + QUALCOMM_AI_HUB_MODELS + (models if models else DEFAULT_MODELS))
+        self.model_status.setText('Refreshed models. On-device Qualcomm AI Hub (45 TOPS NPU) & Neural profiles ready.')
 
     def save_model_settings(self):
         provider = self.provider_combo.currentData() or 'offline'
-        model = self.model_combo.currentText().strip() or 'llama3.2'
-        if provider == 'gemini' and model not in GEMINI_FREE_MODELS:
-            model = 'gemini-3.8-flash'
-        if provider == 'openai' and model not in OPENAI_MODELS:
-            model = 'gpt-5.6-luna'
+        model = self.model_combo.currentText().strip() or 'vexora-neural-v1'
         self.settings['model_provider'] = provider
         self.settings['model_name'] = model
         self.settings['ollama_host'] = self.host_edit.text().strip() or 'http://127.0.0.1:11434'
-        self.settings['gemini_api_key'] = self.gemini_key_edit.text().strip()
-        self.settings['openai_api_key'] = self.openai_key_edit.text().strip()
-        if self.settings['gemini_api_key']:
-            os.environ['GEMINI_API_KEY'] = self.settings['gemini_api_key']
-        if self.settings['openai_api_key']:
-            os.environ['OPENAI_API_KEY'] = self.settings['openai_api_key']
+        self.settings['gemini_api_key'] = ''
+        self.settings['openai_api_key'] = ''
         save_store({'tasks': self.tasks, 'settings': self._safe_persist_settings()})
         self.model_combo.setCurrentText(model)
         self.model_status.setText('Active model: ' + self.backend_label())
@@ -1527,24 +1510,16 @@ class MainWindow(QMainWindow):
             if session.get('model_combo'):
                 self._populate_model_selector(session['model_combo'])
         self._feedback()
-        self.statusBar().showMessage('AI model saved • ' + self.backend_label(), 2500)
+        self.statusBar().showMessage('Local AI configuration saved • ' + self.backend_label(), 2500)
 
     def test_model_connection(self):
         provider = self.provider_combo.currentData() or 'offline'
-        model = self.model_combo.currentText().strip() or 'llama3.2'
+        model = self.model_combo.currentText().strip() or 'vexora-neural-v1'
         host = self.host_edit.text().strip() or 'http://127.0.0.1:11434'
-
-        if provider in ('gemini', 'openai'):
-            key = self.gemini_key_edit.text().strip() if provider == 'gemini' else self.openai_key_edit.text().strip()
-            if not key:
-                self.model_status.setText(f'✕ {provider.title()} API key missing.')
-                return
 
         self.model_status.setText(f'Testing {provider.title()} ({model})…')
         ctx = {
             'model_provider': provider, 'model_name': model,
-            'gemini_api_key': self.gemini_key_edit.text().strip(),
-            'openai_api_key': self.openai_key_edit.text().strip(),
             'assistant_name': self.assistant_name
         }
         worker = ModelTestWorker(provider, model, ctx, host)

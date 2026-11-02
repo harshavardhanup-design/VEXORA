@@ -89,7 +89,7 @@ def _fact(l): return bool(re.search(r'\b(who|what|where|when|which|capital|defin
 def _capabilities_text(name='VEXORA'):
     return (f'Here is what I can do right now:\n\n'
             '• Answer general questions and explain technical concepts.\n'
-            '• Use the selected Gemini, OpenAI or Ollama model for general chat.\n'
+            '• Run 100% on-device AI reasoning (Hexagon NPU & local neural engine) for general chat.\n'
             '• Calculate expressions and handle quick factual requests.\n'
             '• Create, review and complete My Work tasks.\n'
             '• Prepare a practical workday/workspace.\n'
@@ -129,6 +129,7 @@ def local_chat(text,history=None,context=None):
     if re.fullmatch(r'[0-9+\-*/().%\s**×÷^]+',calc or '') and any(c.isdigit() for c in calc):
         v=_safe_calc(calc)
         if v is not None:return f'The answer is {v:g}.' if isinstance(v,(int,float)) else f'The answer is {v}.'
+        return 'Calculation exceeded safe computational limits for the offline backend.'
     name=ctx.get('assistant_name') or 'VEXORA'
     if _contains(l,['hello','hi','hey','namaste']): return f'Hello! I’m {name}. Ask a question, inspect your PC, manage work, or give me a goal and I’ll help turn it into actions.'
     if l in ('help','help me','what can you do','what do you do','capabilities'):
@@ -146,5 +147,6 @@ def local_chat(text,history=None,context=None):
         ans=_wikipedia_answer(q)
         if ans:return ans
     if provider_error: return provider_error
-    return f'I can help with “{q}”, but the offline backend does not have enough verified context. Select a live AI model or enable Online Knowledge.'
+    from ai.local_engine import get_local_engine
+    return get_local_engine().query(q, hist, ctx)
 
