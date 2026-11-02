@@ -1,5 +1,23 @@
 # Changelog
 
+## 5.8.2 — Snapdragon® AI Lab & Enterprise ESG Release
+
+### Fixed
+- **QSystemTrayIcon warning:** Eliminated `QSystemTrayIcon::setVisible: No Icon set` by creating an antialiased Snapdragon Crimson icon (`_create_app_icon()`) assigned to both window and tray.
+- **QFont warning:** Eliminated `QFont::setPointSize: Point size <= 0 (-1)` startup warning by establishing explicit fallback `font-size: 13px;` in the root stylesheet.
+- **Overview Card Cascading:** Overview pipeline stage cards (`SEE`, `THINK`, `ACT`, `VERIFY`, `RECOVER`) had dark nested capsules and squeezed text due to un-scoped QSS cascading; resolved by scoping to `QFrame#StageCard` with transparent borderless child labels.
+- **Router Fallthrough:** Deterministic system queries ("How is my PC?", "Show running apps", "Recent files", "RAM usage") previously fell through to remote/Ollama endpoints on missing keys or network timeouts; now resolved immediately upon `res.text` verification.
+
+### Added
+- **Enterprise ESG & Carbon Telemetry:** Added `get_esg_metrics()` in `core/snapdragon.py` and `_h_esg` intent in `agent/command_router.py` computing real-time energy conservation (watts saved vs 350W cloud GPU nodes), $CO_2$ averted, and battery extension.
+- **Rich Chat Formatting:** Upgraded `_format_body` in `app/ui/widgets.py` to render status badges (`✓`, `✕`), illuminated headers (`⚡`), and bullet metrics in Snapdragon Crimson and Hexagon Green.
+- **Distribution & Standalone Executable:** Added `build_exe.ps1` PyInstaller compiler, 1-click `VEXORA.bat`, silent `Launch_VEXORA.vbs`, and Windows 11 desktop shortcut generator `create_desktop_shortcut.ps1`.
+
+### Security & Infrastructure
+- Reconfigured standard output / standard error streams to UTF-8 in `main.py` with safe replacement fallback, preventing `cp1252` encoding crashes on non-ASCII symbols.
+- Added test coverage in `tests/test_router.py` for Enterprise ESG report routing.
+- Cleaned repository `.gitignore` to exclude build artifacts (`build/`, `dist/`, `*.spec`, `scratch/`).
+
 ## 5.8.1 — Hardening & quality release
 
 ### Fixed

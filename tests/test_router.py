@@ -27,6 +27,7 @@ class Routing(unittest.TestCase):
             'what is on my screen': 'Inspect current screen context',
             'pc specs': 'Inspect system specifications',
             'open windows settings': 'Open Windows Settings',
+            'esg report': 'Enterprise ESG report',
             'help': 'Explain capabilities',
         }
         for q, want in table.items():

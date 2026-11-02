@@ -40,8 +40,9 @@ For complete technical documentation and submission intake-form alignment, see [
 - **Productivity & Focus Console**: Live 45 TOPS Hexagon NPU headroom monitor, interactive Pomodoro timer, and real-time process RAM inspector.
 - **System Specifications**: Automatic hardware profiling for Snapdragon X Elite / Oryon CPU, Hexagon NPU, Adreno GPU, and LPDDR5X RAM with one-click report export.
 - **Settings & Windows Integration**: Single-column vertical scroll settings, Qualcomm AI Hub model selector, and 12 instant Windows 11 Quick Settings shortcuts.
-- **Keyboard-First Control**: `Ctrl+K` Command Palette, `Ctrl+1..6` page navigation, and `Esc` interrupt.
-- **Standalone Executable Builder**: Run `.\build_exe.ps1` to compile a zero-setup `.exe` for distribution.
+- **Enterprise ESG & Carbon Telemetry**: Real-time energy conservation and carbon reduction tracking for enterprise fleets.
+- **Keyboard-First Navigation**: `Ctrl+1..6` page navigation and `Esc` interrupt.
+- **1-Click Launchers & Standalone Executable**: Includes `VEXORA.bat`, silent `Launch_VEXORA.vbs`, desktop shortcut generator `create_desktop_shortcut.ps1`, and `build_exe.ps1` for standalone `.exe` compilation.
 
 ---
 
@@ -121,7 +122,7 @@ VEXORA/
 │       ├── main_window.py  # Executive 6-page dashboard & scrollable settings
 │       ├── theme.py        # Snapdragon Crimson & Qualcomm Electric Cyan design tokens
 │       ├── widgets.py      # ModernMetricCard, battery meters, message cards
-│       └── dialogs.py      # Fail-closed permission approval modals & Command Palette
+│       └── dialogs.py      # Fail-closed permission approval modals
 ├── tests/                  # 39 behavioral unit tests
 ├── tests_v57.py            # Static AST & token validation
 ├── tests_v58.py            # Scroll mechanics & routing verification
